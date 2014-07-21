@@ -31,7 +31,7 @@ GROUP = {
 
 IDP = {
     "identity_provider": {
-        "description": "My IdP",
+        "description": "idpopen @ https://idpopen.garr.it/",
         "enabled": True
     }
 }
@@ -43,21 +43,21 @@ MAPPING = {
                 "local": [
                     {
                         "user": {
-                            "name": "test user"
+                            "name": "idpopen user"
                         }
                     },
                     {
                         "group": {
-                            "id": None
+                            "id": "5e845737a3d646e6b32c173ef5a3cbe4"
                         }
                     }
                 ],
                 "remote": [
                     {
-                        "type": "eppn",
+                        "type": "UserName",
                         "any_one_of": [
-                            "user1",
-                            "user2"
+                            "openstackfederation",
+                            "openstackfederation@idpopen.garr.it"
                         ]
                     }
                 ]

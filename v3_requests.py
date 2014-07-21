@@ -47,10 +47,10 @@ class Infrastructure:
 
     @staticmethod
     def expose_reason(resp):
-        print "Error: HTTP status code: %(err_code)d, response body: %(response)s" % {
+        print("Error: HTTP status code: %(err_code)d, response body: %(response)s" % {
             'err_code': resp.status_code,
             'response': resp.text
-        }
+        })
 
     @staticmethod
     def read_id(filename):
@@ -74,7 +74,6 @@ class Infrastructure:
         resp = requests.post(v3_domains_url, data=json.dumps(body), headers=self.post_header)
         if self.check_response(resp, 201):
             self.domain.update(resp.json().get('domain'))
-            print(self.domain)
             self.write_id(self.domain["name"], self.domain["id"])
             print("HTTP Status Code: 201\nDomain added:")
             print(json.dumps(self.domain, sort_keys=True, indent=4, separators=(',', ': ')))
@@ -90,7 +89,7 @@ class Infrastructure:
             print("\tName: " + domain_name + "\n\tid: " + domain_id)
             os.remove("./" + domain_name + "_id")
         else:
-            print("Error")
+            self.expose_reason(resp)
 
     def modify_domain(self, domain_name):
         domain_id = self.read_id(domain_name)
@@ -102,7 +101,7 @@ class Infrastructure:
             print("HTTP Status Code: 200\nDomain modified:")
             print(json.dumps(self.domain, sort_keys=True, indent=4, separators=(',', ': ')))
         else:
-            print("Error")
+            self.expose_reason(resp)
 
     def get_domain(self, domain_name):
         domain_id = self.read_id(domain_name)
@@ -112,7 +111,7 @@ class Infrastructure:
             print("HTTP Status Code: 200\nDomain:")
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
         else:
-            print("Error")
+            self.expose_reason(resp)
 
     def get_domains(self):
         v3_domains_url = self.url + "/v3/domains/"
@@ -121,7 +120,7 @@ class Infrastructure:
             print("HTTP Status Code: 200\nDomains:")
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
         else:
-            print("Error")
+            self.expose_reason(resp)
 
     def grant_role(self, domain_name, group_name, role_name):
         domain_id = self.read_id(domain_name)
@@ -135,25 +134,23 @@ class Infrastructure:
             print("Domain:\n\tname: " + domain_name + "\n\tid: " + domain_id)
             print("Group:\n\tname: " + group_name + "\n\tid: " + group_id)
         else:
-            print("Error")
+            self.expose_reason(resp)
 
     ################# projects #################
     def add_project(self, domain_name):
         domain_id = self.read_id(domain_name)
         v3_projects_url = self.url + "/v3/projects"
         body = self.project
-        if body['project']['domain_id'] is None:
-            body['project']['domain_id'] = domain_id
+        if body["project"]["domain_id"] is None:
+            body["project"]["domain_id"] = domain_id
         resp = requests.post(v3_projects_url, data=json.dumps(body), headers=self.post_header)
-        project = resp.json().get("project")
-        project_id = project["id"]
-        project_name = project["name"]
-        self.write_id(project_name, project_id)
         if (self.check_response(resp, 201)):
+            self.project.update(resp.json().get("project"))
+            self.write_id(self.project["name"], self.project["id"])
             print("HTTP Status Code: 201\nProject added:")
-            print(json.dumps(project, sort_keys=True, indent=4, separators=(',', ': ')))
+            print(json.dumps(self.project, sort_keys=True, indent=4, separators=(',', ': ')))
         else:
-            print "Error"
+            self.expose_reason(resp)
 
     def delete_project(self, project_name):
         project_id = self.read_id(project_name)
@@ -164,7 +161,7 @@ class Infrastructure:
             print("\tName: " + project_name + "\n\tid: " + project_id)
             os.remove("./" + project_name + "_id")
         else:
-            print("Error")
+            self.expose_reason(resp)
 
     def get_projects(self):
         v3_projects_url = self.url + "/v3/projects/"
@@ -173,7 +170,7 @@ class Infrastructure:
             print("HTTP Status Code: 200\nProjects:")
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
         else:
-            print("Error")
+            self.expose_reason(resp)
 
     def get_project(self, project_name):
         project_id = self.read_id(project_name)
@@ -183,7 +180,7 @@ class Infrastructure:
             print("HTTP Status Code: 200\nProject:")
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
         else:
-            print("Error")
+            self.expose_reason(resp)
 
     ################# roles #################
     def add_role(self):
@@ -293,12 +290,13 @@ class Infrastructure:
             print("Error")
 
     ################# mappings #################
-    def add_mapping(self, mapping_id, group_name):
-        group_id = self.read_id(group_name)
+    #def add_mapping(self, mapping_id, group_name):
+    def add_mapping(self, mapping_id):
+        #group_id = self.read_id(group_name)
         v3_mappings_url = self.url + "/v3/OS-FEDERATION/mappings/" + mapping_id
         body = self.mapping
-        if body['mapping']['rules'][0]['local'][1]['group']['id'] is None:
-            body['mapping']['rules'][0]['local'][1]['group']['id'] = group_id
+        #if body['mapping']['rules'][0]['local'][1]['group']['id'] is None:
+            #body['mapping']['rules'][0]['local'][1]['group']['id'] = group_id
         resp = requests.put(v3_mappings_url, data=json.dumps(body), headers=self.post_header)
         self.mapping = resp.json().get("mapping")
         self.write_id(self.mapping["id"], self.mapping["id"])
@@ -335,6 +333,17 @@ class Infrastructure:
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
         else:
             print("Error")
+
+    def modify_mapping(self, mapping_id):
+        v3_mappings_url = self.url + "/v3/OS-FEDERATION/mappings/" + mapping_id
+        body = self.mapping
+        resp = requests.patch(v3_mappings_url, data=json.dumps(body), headers=self.patch_header)
+        if self.check_response(resp, 200):
+            self.mapping.update(resp.json().get("mapping"))
+            print("HTTP Status Code: 200\nMapping modified:")
+            print(json.dumps(self.mapping, sort_keys=True, indent=4, separators=(',', ': ')))
+        else:
+            self.expose_reason(resp)
 
     ################# protocols #################
     def add_protocol(self, protocol_id, idp_id, mapping_id):
@@ -389,42 +398,44 @@ if __name__ == "__main__":
 
     if len(sys.argv) >= 2:
 
-        # domains
+        ################# domains #################
         parser.add_argument("--domain-get", nargs=1, metavar="<domain_name>")
         parser.add_argument("--domains-get", action="store_true")
         parser.add_argument("--domain-add", action="store_true")
         parser.add_argument("--domain-delete", nargs=1, metavar="<domain_name>")
         parser.add_argument("--grant-role", nargs=3, metavar=("<domain_name>","<group_name>", "<role_name>"))
 
-        # projects
+        ################# projects #################
         parser.add_argument("--project-get", nargs=1)
         parser.add_argument("--projects-get", action="store_true")
         parser.add_argument("--project-add", nargs=1, metavar="<domain_name>")
         parser.add_argument("--project-delete", nargs=1, metavar="<project_name>")
 
-        # roles
+        ################# roles #################
         parser.add_argument("--role-add", action="store_true")
         parser.add_argument("--role-delete", nargs=1, metavar="<role_name>")
 
-        # groups
+        ################# groups #################
         parser.add_argument("--groups-get", action="store_true")
         parser.add_argument("--group-add", nargs=1, metavar="<domain_name>")
         parser.add_argument("--group-delete", nargs=1, metavar="<group_name>")
 
 
-        # identity providers
+        ################# identity providers #################
         parser.add_argument("--idp-get", nargs=1, metavar="<idp_id>")
         parser.add_argument("--idps-get", action="store_true")
         parser.add_argument("--idp-add", nargs=1, metavar="<idp_id>")
         parser.add_argument("--idp-delete", nargs=1, metavar="<idp_id>")
 
-        # mappings
+        ################# mappings #################
         parser.add_argument("--mapping-get", nargs=1, metavar="<mapping_id>")
         parser.add_argument("--mappings-get", action="store_true")
-        parser.add_argument("--mapping-add", nargs=2, metavar=("<mapping_id>", "<group_name>"))
+        #parser.add_argument("--mapping-add", nargs=2, metavar=("<mapping_id>", "<group_name>"))
+        parser.add_argument("--mapping-add", nargs=1, metavar="<mapping_id>")
         parser.add_argument("--mapping-delete", nargs=1, metavar="<mapping_id>")
+        parser.add_argument("--mapping-modify", nargs=1, metavar="<mapping_id>")
 
-        # protocols
+        ################# protocols #################
         parser.add_argument("--protocol-get", nargs=2, metavar=("<protocol_id>", "<idp_id>"))
         parser.add_argument("--protocols-get", nargs=1, metavar="<idp_id>")
         parser.add_argument("--protocol-add", nargs=3, metavar=("<protocol_id>", "<idp_id>", "<mapping_id>"))
@@ -432,7 +443,7 @@ if __name__ == "__main__":
 
         ns = parser.parse_args()
 
-        # domains
+        ################# domains #################
         if ns.domain_get:
             i.get_domain(ns.domain_get[0])
         elif ns.domains_get:
@@ -444,7 +455,7 @@ if __name__ == "__main__":
         elif ns.grant_role:
             i.grant_role(ns.grant_role[0], ns.grant_role[1], ns.grant_role[2])
 
-        # projects
+        ################# projects #################
         elif ns.project_get:
             i.get_project(ns.project_get[0])
         elif ns.projects_get:
@@ -452,13 +463,13 @@ if __name__ == "__main__":
         elif ns.project_add:
             i.add_project(ns.project_add[0])
 
-        # roles
+        ################# roles #################
         elif ns.role_add:
             i.add_role()
         elif ns.role_delete:
             i.delete_role(ns.role_delete[0])
 
-        # groups
+        ################# groups #################
         elif ns.groups_get:
             i.get_groups()
         elif ns.group_add:
@@ -466,7 +477,7 @@ if __name__ == "__main__":
         elif ns.group_delete:
             i.delete_group(ns.group_delete[0])
 
-        # identity providers
+        ################# identity providers #################
         elif ns.idp_get:
             i.get_idp(ns.idp_get[0])
         elif ns.idps_get:
@@ -476,17 +487,20 @@ if __name__ == "__main__":
         elif ns.idp_delete:
             i.delete_idp(ns.idp_delete[0])
 
-        # mappings
+        ################# mappings #################
         elif ns.mapping_get:
             i.get_mapping(ns.mapping_get[0])
         elif ns.mappings_get:
             i.get_mappings()
         elif ns.mapping_add:
-            i.add_mapping(ns.mapping_add[0], ns.mapping_add[1])
+            #i.add_mapping(ns.mapping_add[0], ns.mapping_add[1])
+            i.add_mapping(ns.mapping_add[0])
         elif ns.mapping_delete:
             i.delete_mapping(ns.mapping_delete[0])
+        elif ns.mapping_modify:
+            i.modify_mapping(ns.mapping_modify[0])
 
-        # protocols
+        ################# protocols #################
         elif ns.protocol_get:
             i.get_protocol(ns.protocol_get[0], ns.protocol_get[1])
         elif ns.protocols_get:
