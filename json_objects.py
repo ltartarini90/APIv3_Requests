@@ -2,13 +2,13 @@ DOMAIN = {
     "domain": {
         "description": "My domain",
         "enabled": False,
-        "name": "domain4"
+        "name": "domain1"
     }
 }
 
 PROJECT = {
     "project": {
-        "description": "My project",
+        "description": "My Project",
         "domain_id": None,
         "enabled": True,
         "name": "project1"
@@ -23,15 +23,15 @@ ROLE = {
 
 GROUP = {
     "group": {
-        "domain_id": None,
-        "description": "My group",
+        "domain_id": "95f6682017514156824be98dc7fbab2c",
+        "description": "My group123",
         "name": "group1"
     }
 }
 
 IDP = {
     "identity_provider": {
-        "description": "idpopen @ https://idpopen.garr.it/",
+        "description": "idpopen @ https://idpopen.garr.it",
         "enabled": True
     }
 }
@@ -43,21 +43,21 @@ MAPPING = {
                 "local": [
                     {
                         "user": {
-                            "name": "idpopen user"
+                            "name": "testhib user"
                         }
                     },
                     {
-                        "group": {
-                            "id": "5e845737a3d646e6b32c173ef5a3cbe4"
-                        }
+                    "group": {
+                    "id": "5e845737a3d646e6b32c173ef5a3cbe4"
+                    }
                     }
                 ],
                 "remote": [
                     {
-                        "type": "UserName",
+                        "type": "eppn",
                         "any_one_of": [
-                            "openstackfederation",
-                            "openstackfederation@idpopen.garr.it"
+                            "myself@testshib.org",
+                            "alterego@testshib.org"
                         ]
                     }
                 ]
