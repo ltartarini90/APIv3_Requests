@@ -31,7 +31,7 @@ GROUP = {
 
 IDP = {
     "identity_provider": {
-        "description": "idpopen @ https://idpopen.garr.it",
+        "description": "My idp",
         "enabled": True
     }
 }
@@ -43,12 +43,12 @@ MAPPING = {
                 "local": [
                     {
                         "user": {
-                            "name": "testhib user"
+                            "name": "user"
                         }
                     },
                     {
                     "group": {
-                    "id": "5e845737a3d646e6b32c173ef5a3cbe4"
+                    "id": None
                     }
                     }
                 ],

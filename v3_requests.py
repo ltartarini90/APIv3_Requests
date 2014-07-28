@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-""" da fare:
-    mettere a posto output di group, create e project update -> mettere = al posto di update,
-    update group -> update name -> cambio nome file!!!
-"""
 __author__ = 'Luca Tartarini'
 __date__ = "20/07/14"
 __license__ = "GPL"
@@ -16,7 +12,6 @@ import host_url
 import federation_entities_id
 import json
 import sys
-import os
 import argparse
 
 
@@ -50,6 +45,7 @@ class Infrastructure:
         self.projects_string = "/projects/"
         self.groups_string = "/groups/"
         self.roles_string = "/roles/"
+        self.federation_string = "/OS-FEDERATION"
         self.idps_string = "/identity_providers/"
         self.mappings_string = "/mappings/"
         self.protocols_string = "/protocols/"
@@ -132,20 +128,6 @@ class Infrastructure:
         else:
             self.expose_reason(resp)
 
-    @staticmethod
-    def read_id_from_file(filename):
-        filename = "./" + filename + "_id"
-        in_file = open(filename, "r")
-        entity_id = in_file.readline()
-        in_file.close()
-        return entity_id
-
-    @staticmethod
-    def write_id(filename, entity_id):
-        out_file = open("./" + filename + "_id", "w")
-        out_file.write(entity_id)
-        out_file.close()
-
     ################# configure all #################
 
     def configure_all(self):
@@ -162,14 +144,14 @@ class Infrastructure:
         # create identity provider
         if federation_entities_id.idp_id is None:
             idp_id = raw_input("Insert IdP id: ")
-        self.add_idp(idp_id)
+        self.create_idp(idp_id)
         # create mapping
         if federation_entities_id.mapping_id is None:
             mapping_id = raw_input("Insert Mapping id: ")
-        self.add_mapping(mapping_id)
+        self.create_mapping(mapping_id)
         # create protocol
         protocol_id= raw_input("Insert Protocol id: ")
-        self.add_protocol(protocol_id, idp_id, mapping_id)
+        self.create_protocol(protocol_id, idp_id, mapping_id)
 
     ################# domains #################
 
@@ -225,6 +207,18 @@ class Infrastructure:
         resp = requests.put(url, headers=self.put_header)
         if self.check_response(resp, 204):
             print("HTTP Status Code: 204\nGranted role to group on domain:")
+            print("Role:\n\tname: " + role_name + "\n\tid: " + role_id)
+            print("Domain:\n\tname: " + domain_name + "\n\tid: " + domain_id)
+            print("Group:\n\tname: " + group_name + "\n\tid: " + group_id)
+        else:
+            self.expose_reason(resp)
+
+    def revoke_role_group_domain(self, domain_name, domain_id, group_name, group_id, role_name, role_id):
+        url = self.host_url + self.api_version + self.domains_string + domain_id + self.groups_string + group_id + \
+            self.roles_string + role_id
+        resp = requests.put(url, headers=self.delete_header)
+        if self.check_response(resp, 204):
+            print("HTTP Status Code: 204\nRevoked role to group on domain:")
             print("Role:\n\tname: " + role_name + "\n\tid: " + role_id)
             print("Domain:\n\tname: " + domain_name + "\n\tid: " + domain_id)
             print("Group:\n\tname: " + group_name + "\n\tid: " + group_id)
@@ -288,6 +282,18 @@ class Infrastructure:
         resp = requests.put(url, headers=self.put_header)
         if self.check_response(resp, 204):
             print("HTTP Status Code: 204\nGranted role to group on project:")
+            print("Role:\n\tname: " + role_name + "\n\tid: " + role_id)
+            print("Group:\n\tname: " + group_name + "\n\tid: " + group_id)
+            print("Project:\n\tname: " + project_name + "\n\tid: " + project_id)
+        else:
+            self.expose_reason(resp)
+
+    def revoke_role_group_project(self, project_name, project_id, group_name, group_id, role_name, role_id):
+        url = self.host_url + self.api_version + self.projects_string + project_id + self.groups_string + group_id + \
+            self.roles_string + role_id
+        resp = requests.put(url, headers=self.delete_header)
+        if self.check_response(resp, 204):
+            print("HTTP Status Code: 204\nRevoked role to group on project:")
             print("Role:\n\tname: " + role_name + "\n\tid: " + role_id)
             print("Group:\n\tname: " + group_name + "\n\tid: " + group_id)
             print("Project:\n\tname: " + project_name + "\n\tid: " + project_id)
@@ -395,40 +401,39 @@ class Infrastructure:
         return resp
 
     ################# identity providers #################
-    def add_idp(self, idp_id):
-        v3_idps_url = self.host_url + "/v3/OS-FEDERATION/identity_providers/" + idp_id
+    def create_idp(self, idp_id):
+        url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id
         body = self.idp
-        resp = requests.put(v3_idps_url, data=json.dumps(body), headers=self.post_header)
+        resp = requests.put(url, data=json.dumps(body), headers=self.post_header)
         if self.check_response(resp, 201):
             self.idp = resp.json().get("identity_provider")
-            self.write_id(self.idp["id"], self.idp["id"])
-            print("HTTP Status Code: 201\nIdP added:")
+            print("HTTP Status Code: 201\nIdP created:")
             print(json.dumps(self.idp, sort_keys=True, indent=4, separators=(',', ': ')))
         else:
             self.expose_reason(resp)
 
     def delete_idp(self, idp_id):
-        v3_idps_url = self.host_url + "/v3/OS-FEDERATION/identity_providers/" + idp_id
-        resp = requests.delete(v3_idps_url, headers=self.get_header)
+        url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id
+        resp = requests.delete(url, headers=self.delete_header)
         if self.check_response(resp, 204):
             print("HTTP Status Code: 204\nIdentity provider deleted:")
             print("\tId: " + idp_id)
-            os.remove("./" + idp_id + "_id")
         else:
             self.expose_reason(resp)
 
     def get_idp(self, idp_id):
-        v3_idps_url = self.host_url + "/v3/OS-FEDERATION/identity_providers/" + idp_id
-        resp = requests.get(v3_idps_url, headers=self.get_header)
+        url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id
+        resp = requests.get(url, headers=self.get_header)
         if self.check_response(resp, 200):
+            self.idp = resp.json().get("identity_provider")
             print("HTTP Status Code: 200\nIdentity provider:")
-            print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
+            print(json.dumps(self.idp, sort_keys=True, indent=4, separators=(',', ': ')))
         else:
             self.expose_reason(resp)
 
     def get_idps(self):
-        v3_idps_url = self.host_url + "/v3/OS-FEDERATION/identity_providers/"
-        resp = requests.get(v3_idps_url, headers=self.get_header)
+        url = self.host_url + self.api_version + self.federation_string + self.idps_string
+        resp = requests.get(url, headers=self.get_header)
         if self.check_response(resp, 200):
             print("HTTP Status Code: 200\nIdentity providers:")
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
@@ -436,101 +441,104 @@ class Infrastructure:
             self.expose_reason(resp)
 
     ################# mappings #################
-    def add_mapping(self, mapping_id):
-        v3_mappings_url = self.host_url + "/v3/OS-FEDERATION/mappings/" + mapping_id
+
+    def create_mapping(self, mapping_id):
+        url = self.host_url + self.api_version + self.federation_string + self.mappings_string + mapping_id
         body = self.mapping
         if body["mapping"]["rules"][0]["local"][1]["group"]["id"] is None:
             group_name = raw_input("Insert group name: ")
-            group_id = self.read_id_from_file(group_name)
+            group_id = self.read_group_id_by_name(group_name)
             body["mapping"]["rules"][0]["local"][1]["group"]["id"] = group_id
-        resp = requests.put(v3_mappings_url, data=json.dumps(body), headers=self.post_header)
+        resp = requests.put(url, data=json.dumps(body), headers=self.post_header)
         if self.check_response(resp, 201):
             self.mapping = resp.json().get("mapping")
-            self.write_id(self.mapping["id"], self.mapping["id"])
-            print("HTTP Status Code: 201\nMapping added:")
+            print("HTTP Status Code: 201\nMapping created:")
             print(json.dumps(self.mapping, sort_keys=True, indent=4, separators=(',', ': ')))
         else:
             self.expose_reason(resp)
-        return self.mapping["id"]
 
     def delete_mapping(self, mapping_id):
-        v3_mappings_url = self.host_url + "/v3/OS-FEDERATION/mappings/" + mapping_id
-        resp = requests.delete(v3_mappings_url, headers=self.get_header)
+        v3_mappings_url = self.host_url + self.api_version + self.federation_string + self.mappings_string + mapping_id
+        resp = requests.delete(v3_mappings_url, headers=self.delete_header)
         if self.check_response(resp, 204):
             print("HTTP Status Code: 204\nMapping deleted:")
             print("\tId: " + mapping_id)
-            os.remove("./" + mapping_id + "_id")
         else:
             self.expose_reason(resp)
 
     def get_mapping(self, mapping_id):
-        v3_mappings_url = self.host_url + "/v3/OS-FEDERATION/mappings/" + mapping_id
+        v3_mappings_url = self.host_url + self.api_version + self.federation_string + self.mappings_string + mapping_id
         resp = requests.get(v3_mappings_url, headers=self.get_header)
         if self.check_response(resp, 200):
+            self.mapping = resp.json().get("mapping")
             print("HTTP Status Code: 200\nMapping:")
-            print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
+            print(json.dumps(self.mapping, sort_keys=True, indent=4, separators=(',', ': ')))
         else:
             self.expose_reason(resp)
 
     def get_mappings(self):
-        v3_mappings_url = self.host_url + "/v3/OS-FEDERATION/mappings/"
-        resp = requests.get(v3_mappings_url, headers=self.get_header)
+        url = self.host_url + self.api_version + self.federation_string + self.mappings_string
+        resp = requests.get(url, headers=self.get_header)
         if self.check_response(resp, 200):
             print("HTTP Status Code: 200\nMappings:")
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
         else:
             self.expose_reason(resp)
 
-    def modify_mapping(self, mapping_id):
-        v3_mappings_url = self.host_url + "/v3/OS-FEDERATION/mappings/" + mapping_id
+    def update_mapping(self, mapping_id):
+        v3_mappings_url = self.host_url + self.api_version + self.federation_string + self.mappings_string + mapping_id
         body = self.mapping
         resp = requests.patch(v3_mappings_url, data=json.dumps(body), headers=self.patch_header)
         if self.check_response(resp, 200):
-            self.mapping.update(resp.json().get("mapping"))
-            print("HTTP Status Code: 200\nMapping modified:")
+            self.mapping = resp.json().get("mapping")
+            print("HTTP Status Code: 200\nMapping updated:")
             print(json.dumps(self.mapping, sort_keys=True, indent=4, separators=(',', ': ')))
         else:
             self.expose_reason(resp)
 
     ################# protocols #################
-    def add_protocol(self, protocol_id, idp_id, mapping_id):
-        v3_protocols_url = self.host_url + "/v3/OS-FEDERATION/identity_providers/" + idp_id + "/protocols/" + protocol_id
+
+    def create_protocol(self, protocol_id, idp_id):
+        url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
+            self.protocols_string + protocol_id
         body = self.protocol
         if body["protocol"]["mapping_id"] is None:
+            mapping_id = raw_input("Insert mapping_id: ")
             body["protocol"]["mapping_id"] = mapping_id
         print(body)
-        resp = requests.put(v3_protocols_url, data=json.dumps(body), headers=self.post_header)
+        resp = requests.put(url, data=json.dumps(body), headers=self.post_header)
         if self.check_response(resp, 201):
             self.protocol = resp.json().get("protocol")
-            self.write_id(self.protocol["id"], self.protocol["id"])
-            print("HTTP Status Code: 201\nProtocol added:")
+            print("HTTP Status Code: 201\nProtocol created:")
             print(json.dumps(self.protocol, sort_keys=True, indent=4, separators=(',', ': ')))
         else:
             self.expose_reason(resp)
-        return self.protocol["id"]
 
     def delete_protocol(self, protocol_id, idp_id):
-        v3_protocols_url = self.host_url + "/v3/OS-FEDERATION/identity_providers/" + idp_id + "/protocols/" + protocol_id
-        resp = requests.delete(v3_protocols_url, headers=self.get_header)
+        v3_protocols_url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
+            self.protocols_string + protocol_id
+        resp = requests.delete(v3_protocols_url, headers=self.delete_header)
         if self.check_response(resp, 204):
             print("HTTP Status Code: 204\nProtocol deleted:")
             print("\tId: " + protocol_id)
-            os.remove("./" + protocol_id + "_id")
         else:
             self.expose_reason(resp)
 
     def get_protocol(self, protocol_id, idp_id):
-        v3_protocols_url = self.host_url + "/v3/OS-FEDERATION/identity_providers/" + idp_id + "/protocols/" + protocol_id
-        resp = requests.get(v3_protocols_url, headers=self.get_header)
+        url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
+            self.protocols_string + protocol_id
+        resp = requests.get(url, headers=self.get_header)
         if self.check_response(resp, 200):
+            self.protocol = resp.json().get("protocol")
             print("HTTP Status Code: 200\nProtocol:")
-            print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
+            print(json.dumps(self.protocol, sort_keys=True, indent=4, separators=(',', ': ')))
         else:
             self.expose_reason(resp)
 
     def get_protocols(self, idp_id):
-        v3_protocols_url = self.host_url + "/v3/OS-FEDERATION/identity_providers/" + idp_id + "/protocols"
-        resp = requests.get(v3_protocols_url, headers=self.get_header)
+        url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
+            self.protocols_string
+        resp = requests.get(url, headers=self.get_header)
         if self.check_response(resp, 200):
             print("HTTP Status Code: 200\nProtocols:")
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
@@ -558,7 +566,8 @@ if __name__ == "__main__":
         parser.add_argument("--domain-delete", nargs=1, metavar="<domain_name>")
         parser.add_argument("--grant-role-group-domain", nargs=3, metavar=("<domain_name>", "<group_name>",
                                                                            "<role_name>"))
-        """ TODO revoke, get roles per group per domain """
+        parser.add_argument("--revoke-role-group-domain", nargs=3, metavar=("<domain_name>", "<group_name>",
+                                                                            "<role_name>"))
 
         ################# projects #################
 
@@ -569,7 +578,8 @@ if __name__ == "__main__":
         parser.add_argument("--project-delete", nargs=1, metavar="<project_name>")
         parser.add_argument("--grant-role-group-project", nargs=3, metavar=("<project_name>", "<group_name>",
                                                                             "<role_name>"))
-        """ TODO revoke, get roles per group per project """
+        parser.add_argument("--revoke-role-group-project", nargs=3, metavar=("<project_name>", "<group_name>",
+                                                                             "<role_name>"))
 
         ################# roles #################
 
@@ -588,23 +598,24 @@ if __name__ == "__main__":
         parser.add_argument("--group-delete", nargs=1, metavar="<group_name>")
 
         ################# identity providers #################
+
         parser.add_argument("--idp-get", nargs=1, metavar="<idp_id>")
         parser.add_argument("--idps-get", action="store_true")
-        parser.add_argument("--idp-add", nargs=1, metavar="<idp_id>")
+        parser.add_argument("--idp-create", nargs=1, metavar="<idp_id>")
         parser.add_argument("--idp-delete", nargs=1, metavar="<idp_id>")
 
         ################# mappings #################
         parser.add_argument("--mapping-get", nargs=1, metavar="<mapping_id>")
         parser.add_argument("--mappings-get", action="store_true")
-        #parser.add_argument("--mapping-add", nargs=2, metavar=("<mapping_id>", "<group_name>"))
-        parser.add_argument("--mapping-add", nargs=1, metavar="<mapping_id>")
+        parser.add_argument("--mapping-create", nargs=1, metavar="<mapping_id>")
         parser.add_argument("--mapping-delete", nargs=1, metavar="<mapping_id>")
-        parser.add_argument("--mapping-modify", nargs=1, metavar="<mapping_id>")
+        parser.add_argument("--mapping-update", nargs=1, metavar="<mapping_id>")
 
         ################# protocols #################
+
         parser.add_argument("--protocol-get", nargs=2, metavar=("<protocol_id>", "<idp_id>"))
         parser.add_argument("--protocols-get", nargs=1, metavar="<idp_id>")
-        parser.add_argument("--protocol-add", nargs=3, metavar=("<protocol_id>", "<idp_id>", "<mapping_id>"))
+        parser.add_argument("--protocol-create", nargs=2, metavar=("<protocol_id>", "<idp_id>"))
         parser.add_argument("--protocol-delete", nargs=2, metavar=("<protocol_id>", "<idp_id>"))
 
         ns = parser.parse_args()
@@ -635,6 +646,13 @@ if __name__ == "__main__":
             role_identifier = i.read_role_id_by_name(ns.grant_role_group_domain[2])
             i.grant_role_group_domain(ns.grant_role_group_domain[0], domain_identifier, ns.grant_role_group_domain[1],
                                       group_identifier, ns.grant_role_group_domain[2], role_identifier)
+        elif ns.revoke_role_group_domain:
+            domain_identifier = i.read_domain_id_by_name(ns.revoke_role_group_domain[0])
+            group_identifier = i.read_group_id_by_name(ns.revoke_role_group_domain[1])
+            role_identifier = i.read_role_id_by_name(ns.revoke_role_group_domain[2])
+            i.revoke_role_group_domain(ns.revoke_role_group_domain[0], domain_identifier,
+                                       ns.revoke_role_group_domain[1], group_identifier, ns.revoke_role_group_domain[2],
+                                       role_identifier)
 
         ################# projects #################
 
@@ -659,6 +677,13 @@ if __name__ == "__main__":
             i.grant_role_group_project(ns.grant_role_group_project[0], project_identifier,
                                        ns.grant_role_group_project[1], group_identifier, ns.grant_role_group_project[2],
                                        role_identifier)
+        elif ns.revoke_role_group_project:
+            project_identifier = i.read_project_id_by_name(ns.revoke_role_group_project[0])
+            group_identifier = i.read_group_id_by_name(ns.revoke_role_group_project[1])
+            role_identifier = i.read_role_id_by_name(ns.revoke_role_group_project[2])
+            i.revoke_role_group_project(ns.revoke_role_group_project[0], project_identifier,
+                                        ns.revoke_role_group_project[1], group_identifier,
+                                        ns.revoke_role_group_project[2], role_identifier)
 
         ################# roles #################
 
@@ -695,34 +720,37 @@ if __name__ == "__main__":
             i.delete_group(ns.group_delete[0], group_identifier)
 
         ################# identity providers #################
+
         elif ns.idp_get:
             i.get_idp(ns.idp_get[0])
         elif ns.idps_get:
             i.get_idps()
-        elif ns.idp_add:
-            i.add_idp(ns.idp_add[0])
+        elif ns.idp_create:
+            i.create_idp(ns.idp_create[0])
         elif ns.idp_delete:
             i.delete_idp(ns.idp_delete[0])
 
         ################# mappings #################
+
         elif ns.mapping_get:
             i.get_mapping(ns.mapping_get[0])
         elif ns.mappings_get:
             i.get_mappings()
-        elif ns.mapping_add:
-            i.add_mapping(ns.mapping_add[0])
+        elif ns.mapping_create:
+            i.create_mapping(ns.mapping_create[0])
         elif ns.mapping_delete:
             i.delete_mapping(ns.mapping_delete[0])
-        elif ns.mapping_modify:
-            i.modify_mapping(ns.mapping_modify[0])
+        elif ns.mapping_update:
+            i.update_mapping(ns.mapping_modify[0])
 
         ################# protocols #################
+
         elif ns.protocol_get:
             i.get_protocol(ns.protocol_get[0], ns.protocol_get[1])
         elif ns.protocols_get:
             i.get_protocols(ns.protocols_get[0])
-        elif ns.protocol_add:
-            i.add_protocol(ns.protocol_add[0], ns.protocol_add[1], ns.protocol_add[2])
+        elif ns.protocol_create:
+            i.create_protocol(ns.protocol_create[0], ns.protocol_create[1])
         elif ns.protocol_delete:
             i.delete_protocol(ns.protocol_delete[0], ns.protocol_delete[1])
 
