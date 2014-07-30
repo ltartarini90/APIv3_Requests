@@ -500,6 +500,7 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2:
 
         ################# configure all #################
+
         parser.add_argument("--configure-all", action="store_true")
 
         ################# domains #################
@@ -550,6 +551,7 @@ if __name__ == "__main__":
         parser.add_argument("--idp-delete", nargs=1, metavar="<idp_id>")
 
         ################# mappings #################
+
         parser.add_argument("--mapping-get", nargs=1, metavar="<mapping_id>")
         parser.add_argument("--mappings-list", action="store_true")
         parser.add_argument("--mapping-create", nargs=1, metavar="<mapping_id>")
