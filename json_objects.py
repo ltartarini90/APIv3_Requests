@@ -23,8 +23,8 @@ ROLE = {
 
 GROUP = {
     "group": {
-        "domain_id": "95f6682017514156824be98dc7fbab2c",
-        "description": "My group123",
+        "domain_id": None,
+        "description": "My group",
         "name": "group1"
     }
 }
@@ -56,8 +56,8 @@ MAPPING = {
                     {
                         "type": "eppn",
                         "any_one_of": [
-                            "myself@testshib.org",
-                            "alterego@testshib.org"
+                            "user1",
+                            "user2"
                         ]
                     }
                 ]
