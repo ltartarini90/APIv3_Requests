@@ -499,6 +499,8 @@ if __name__ == "__main__":
 
     if len(sys.argv) >= 2:
 
+        parser.add_argument("-v", "--verbose", action="store_true")
+
         ################# configure all #################
 
         parser.add_argument("--configure-all", action="store_true")
@@ -566,6 +568,10 @@ if __name__ == "__main__":
         parser.add_argument("--protocol-delete", nargs=2, metavar=("<protocol_id>", "<idp_id>"))
 
         ns = parser.parse_args()
+
+        if ns.verbose:
+            utils.verbose = True
+            print("ciao")
 
         ################# configure all #################
 

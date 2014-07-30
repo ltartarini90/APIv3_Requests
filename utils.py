@@ -7,6 +7,7 @@ __email__ = "ltartarini90@gmail.com"
 
 import json
 
+verbose = None
 
 ################# check response #################
 
