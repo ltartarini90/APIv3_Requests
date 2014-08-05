@@ -1,6 +1,6 @@
 DOMAIN = {
     "domain": {
-        "description": "My domain",
+        "description": "My domain1",
         "enabled": False,
         "name": "domain1"
     }
@@ -8,30 +8,30 @@ DOMAIN = {
 
 PROJECT = {
     "project": {
-        "description": "My Project",
-        "domain_id": None,
+        "description": "Project for adfs",
+        "domain_id": "dba28b422e494b97a2fb1ff28aaefb69",
         "enabled": True,
-        "name": "project1"
+        "name": "adfs-project"
     }
 }
 
 ROLE = {
     "role": {
-        "name": "role1"
+        "name": "adfs-role"
     }
 }
 
 GROUP = {
     "group": {
-        "domain_id": None,
-        "description": "My group",
-        "name": "group1"
+        "domain_id": "dba28b422e494b97a2fb1ff28aaefb69",
+        "description": "Group for adfs",
+        "name": "adfs-group"
     }
 }
 
 IDP = {
     "identity_provider": {
-        "description": "My idp",
+        "description": "CERN adfs",
         "enabled": True
     }
 }
@@ -43,21 +43,21 @@ MAPPING = {
                 "local": [
                     {
                         "user": {
-                            "name": "user"
+                            "name": "adfs user"
                         }
                     },
                     {
                     "group": {
-                    "id": None
+                    "id": "6aabf7cc860e401890047d9ec6336a3c"
                     }
                     }
                 ],
                 "remote": [
                     {
-                        "type": "eppn",
+                        "type": "ADFS_LOGIN",
                         "any_one_of": [
-                            "user1",
-                            "user2"
+                            "ltartari",
+                            "luca.tartarini@cern.ch"
                         ]
                     }
                 ]
@@ -68,6 +68,6 @@ MAPPING = {
 
 PROTOCOL = {
     "protocol": {
-        "mapping_id": None
+        "mapping_id": "adfs_mapping"
     }
 }

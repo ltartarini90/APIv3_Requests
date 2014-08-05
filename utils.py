@@ -6,8 +6,46 @@ __license__ = "GPL"
 __email__ = "ltartarini90@gmail.com"
 
 import json
+import headers
 
 verbose = None
+
+
+class Identifiers:
+
+    def __init__(self):
+        self.domain_id = None
+        self.project_id = None
+        self.group_id = None
+        self.role_id = None
+        self.idp_id = None
+        self.mapping_id = None
+        self.protocol_id = None
+
+
+class Headers:
+
+    def __init__(self):
+        self.header_post = headers.HEADER_POST
+        self.header_get = headers.HEADER_GET
+        self.header_delete = headers.HEADER_GET
+        self.header_put = headers.HEADER_PUT
+        self.header_patch = headers.HEADER_PATCH
+
+
+class URLStrings:
+
+    def __init__(self):
+        self.api_version = "/v3"
+        self.domains_string = "/domains/"
+        self.projects_string = "/projects/"
+        self.groups_string = "/groups/"
+        self.roles_string = "/roles/"
+        self.federation_string = "/OS-FEDERATION"
+        self.idps_string = "/identity_providers/"
+        self.mappings_string = "/mappings/"
+        self.protocols_string = "/protocols/"
+
 
 ################# check response #################
 

@@ -1,43 +1,38 @@
 #!/usr/bin/env python
 
 __author__ = 'Luca Tartarini'
-__date__ = "20/07/14"
+__date__ = "05/08/14"
 __license__ = "GPL"
 __email__ = "ltartarini90@gmail.com"
 
 import requests
-import json_objects
-import headers
-import host_url
 import json
-import sys
-import argparse
-import identifiers
+import json_objects
 import utils
+import host_url
 
 
 class IdentityAPIv3:
 
     # constructor for the class
     def __init__(self):
-
         ################# APIv3 entities #################
-
         self.domain = json_objects.DOMAIN
         self.project = json_objects.PROJECT
         self.role = json_objects.ROLE
         self.group = json_objects.GROUP
-
         ################# APIv3 federation entities #################
-
         self.idp = json_objects.IDP
         self.mapping = json_objects.MAPPING
         self.protocol = json_objects.PROTOCOL
-
-        # host url
+        ################# keystone URL #################
         self.host_url = host_url.URL
-
-        # string to concatenate
+        ################# headers #################
+        self.headers = utils.Headers()
+        ################# token management #################
+        self.auth_token = None
+        self.auth_token_file = "./x_auth_token"
+        ################# API strings URL #################
         self.api_version = "/v3"
         self.domains_string = "/domains/"
         self.projects_string = "/projects/"
@@ -47,9 +42,15 @@ class IdentityAPIv3:
         self.idps_string = "/identity_providers/"
         self.mappings_string = "/mappings/"
         self.protocols_string = "/protocols/"
+        ################# identifiers #################
+        self.ids = utils.Identifiers()
 
-        # identifiers
-        self.ids = identifiers.Identifiers()
+    ################# check auth_token #################
+
+    def _check_header_auth_token(self, header):
+        if header["X-Auth-Token"] is None:
+            header["X-Auth-Token"] = self.auth_token
+        return header
 
     ################# configure all #################
 
@@ -83,8 +84,10 @@ class IdentityAPIv3:
 
     def create_domain(self):
         url = self.host_url + self.api_version + self.domains_string
+        header = self.headers.header_post
+        header = self._check_header_auth_token(header)
         body = self.domain
-        resp = requests.post(url, data=json.dumps(body), headers=headers.HEADER_POST)
+        resp = requests.post(url, data=json.dumps(body), headers=header)
         if utils.check_response(resp, 201):
             self.domain = (resp.json().get("domain"))
             print("HTTP Status Code: 201\nDomain created:")
@@ -95,8 +98,10 @@ class IdentityAPIv3:
 
     def update_domain(self, domain_id):
         url = self.host_url + self.api_version + self.domains_string + domain_id
+        header = self.headers.header_patch
+        header = self._check_header_auth_token(header)
         body = self.domain
-        resp = requests.patch(url, data=json.dumps(body), headers=headers.HEADER_PATCH)
+        resp = requests.patch(url, data=json.dumps(body), headers=header)
         if utils.check_response(resp, 200):
             self.domain = resp.json().get("domain")
             print("HTTP Status Code: 200\nDomain updated:")
@@ -106,7 +111,9 @@ class IdentityAPIv3:
 
     def delete_domain(self, domain_name, domain_id):
         url = self.host_url + self.api_version + self.domains_string + domain_id
-        resp = requests.delete(url, headers=headers.HEADER_DELETE)
+        header = self.headers.header_delete
+        header = self._check_header_auth_token(header)
+        resp = requests.delete(url, headers=header)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nDomain deleted:")
             print("\tName: " + domain_name + "\n\tid: " + domain_id)
@@ -115,7 +122,9 @@ class IdentityAPIv3:
 
     def get_domain(self, domain_id):
         url = self.host_url + self.api_version + self.domains_string + domain_id
-        resp = requests.get(url, headers=headers.HEADER_GET)
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header)
         if utils.check_response(resp, 200):
             self.domain = resp.json().get("domain")
             print("HTTP Status Code: 200\nDomain:")
@@ -125,13 +134,17 @@ class IdentityAPIv3:
 
     def list_domains(self):
         url = self.host_url + self.api_version + self.domains_string
-        resp = requests.get(url, headers=headers.HEADER_GET)
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header)
         return resp
 
     def grant_role_group_domain(self, domain_name, domain_id, group_name, group_id, role_name, role_id):
         url = self.host_url + self.api_version + self.domains_string + domain_id + self.groups_string + group_id + \
-            self.roles_string + role_id
-        resp = requests.put(url, headers=headers.HEADER_PUT)
+              self.roles_string + role_id
+        header = self.headers.header_put
+        header = self._check_header_auth_token(header)
+        resp = requests.put(url, headers=header)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nGranted role to group on domain:")
             print("Role:\n\tname: " + role_name + "\n\tid: " + role_id)
@@ -142,8 +155,10 @@ class IdentityAPIv3:
 
     def revoke_role_group_domain(self, domain_name, domain_id, group_name, group_id, role_name, role_id):
         url = self.host_url + self.api_version + self.domains_string + domain_id + self.groups_string + group_id + \
-            self.roles_string + role_id
-        resp = requests.put(url, headers=headers.HEADER_DELETE)
+              self.roles_string + role_id
+        header = self.headers.header_delete
+        header = self._check_header_auth_token(header)
+        resp = requests.put(url, headers=header)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nRevoked role to group on domain:")
             print("Role:\n\tname: " + role_name + "\n\tid: " + role_id)
@@ -207,9 +222,18 @@ class IdentityAPIv3:
         resp = requests.get(v3_projects_url, headers=headers.HEADER_GET)
         return resp
 
+    def list_projects_federation(self):
+        v3_projects_url = self.host_url + self.api_version + self.federation_string + self.projects_string
+        header = self.header_get
+        if header["X-Auth-Token"] is None:
+            print("None")
+            header["X-Auth-Token"] = self.auth_token
+        resp = requests.get(v3_projects_url, headers=header)
+        return resp
+
     def grant_role_group_project(self, project_name, project_id, group_name, group_id, role_name, role_id):
         url = self.host_url + self.api_version + self.projects_string + project_id + self.groups_string + group_id + \
-            self.roles_string + role_id
+              self.roles_string + role_id
         resp = requests.put(url, headers=headers.HEADER_PUT)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nGranted role to group on project:")
@@ -221,7 +245,7 @@ class IdentityAPIv3:
 
     def revoke_role_group_project(self, project_name, project_id, group_name, group_id, role_name, role_id):
         url = self.host_url + self.api_version + self.projects_string + project_id + self.groups_string + group_id + \
-            self.roles_string + role_id
+              self.roles_string + role_id
         resp = requests.put(url, headers=headers.HEADER_DELETE)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nRevoked role to group on project:")
@@ -285,7 +309,7 @@ class IdentityAPIv3:
     def create_group(self):
         url = self.host_url + self.api_version + self.groups_string
         body = self.group
-        if body['group']['domain_id'] is None:
+        if body["group"]["domain_id"] is None:
             if self.ids.domain_id is None:
                 domain_name = raw_input("Insert domain name: ")
                 domain_id = utils.read_domain_id_by_name(self.list_groups().json(), domain_name)
@@ -337,6 +361,7 @@ class IdentityAPIv3:
         return resp
 
     ################# identity providers #################
+
     def create_idp(self, idp_id):
         url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id
         body = self.idp
@@ -441,7 +466,7 @@ class IdentityAPIv3:
 
     def create_protocol(self, protocol_id, idp_id):
         url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
-            self.protocols_string + protocol_id
+              self.protocols_string + protocol_id
         body = self.protocol
         if body["protocol"]["mapping_id"] is None:
             if self.ids.mapping_id is None:
@@ -461,7 +486,7 @@ class IdentityAPIv3:
 
     def delete_protocol(self, protocol_id, idp_id):
         v3_protocols_url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
-            self.protocols_string + protocol_id
+                           self.protocols_string + protocol_id
         resp = requests.delete(v3_protocols_url, headers=headers.HEADER_DELETE)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nProtocol deleted:")
@@ -471,7 +496,7 @@ class IdentityAPIv3:
 
     def get_protocol(self, protocol_id, idp_id):
         url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
-            self.protocols_string + protocol_id
+              self.protocols_string + protocol_id
         resp = requests.get(url, headers=headers.HEADER_GET)
         if utils.check_response(resp, 200):
             self.protocol = resp.json().get("protocol")
@@ -482,7 +507,7 @@ class IdentityAPIv3:
 
     def list_protocols(self, idp_id):
         url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
-            self.protocols_string
+              self.protocols_string
         resp = requests.get(url, headers=headers.HEADER_GET)
         if utils.check_response(resp, 200):
             print("HTTP Status Code: 200\nProtocols:")
@@ -490,223 +515,15 @@ class IdentityAPIv3:
         else:
             utils.expose_reason(resp)
 
+    ################# tokens #################
 
-if __name__ == "__main__":
+    def set_auth_token(self, token):
+        token_file = open(self.auth_token_file,"w")
+        token_file.write(token)
+        token_file.close()
 
-    i = IdentityAPIv3()
-
-    parser = argparse.ArgumentParser()
-
-    if len(sys.argv) >= 2:
-
-        parser.add_argument("-v", "--verbose", action="store_true")
-
-        ################# configure all #################
-
-        parser.add_argument("--configure-all", action="store_true")
-
-        ################# domains #################
-
-        parser.add_argument("--domain-get", nargs=1, metavar="<domain_name>")
-        parser.add_argument("--domains-list", action="store_true")
-        parser.add_argument("--domain-create", action="store_true")
-        parser.add_argument("--domain-update", nargs=1, metavar="<domain_name>")
-        parser.add_argument("--domain-delete", nargs=1, metavar="<domain_name>")
-        parser.add_argument("--grant-role-group-domain", nargs=3, metavar=("<domain_name>", "<group_name>",
-                                                                           "<role_name>"))
-        parser.add_argument("--revoke-role-group-domain", nargs=3, metavar=("<domain_name>", "<group_name>",
-                                                                            "<role_name>"))
-
-        ################# projects #################
-
-        parser.add_argument("--project-get", nargs=1, metavar="<project_name>")
-        parser.add_argument("--projects-list", action="store_true")
-        parser.add_argument("--project-create", action="store_true")
-        parser.add_argument("--project-update", nargs=1, metavar="<project_name>")
-        parser.add_argument("--project-delete", nargs=1, metavar="<project_name>")
-        parser.add_argument("--grant-role-group-project", nargs=3, metavar=("<project_name>", "<group_name>",
-                                                                            "<role_name>"))
-        parser.add_argument("--revoke-role-group-project", nargs=3, metavar=("<project_name>", "<group_name>",
-                                                                             "<role_name>"))
-
-        ################# roles #################
-
-        parser.add_argument("--role-get", nargs=1, metavar="<role_name>")
-        parser.add_argument("--roles-list", action="store_true")
-        parser.add_argument("--role-create", action="store_true")
-        parser.add_argument("--role-update", nargs=1, metavar="<role_name>")
-        parser.add_argument("--role-delete", nargs=1, metavar="<role_name>")
-
-        ################# groups #################
-
-        parser.add_argument("--group-get", nargs=1, metavar="<group_name>")
-        parser.add_argument("--groups-list", action="store_true")
-        parser.add_argument("--group-create", action="store_true")
-        parser.add_argument("--group-update", nargs=1, metavar="<group_name>")
-        parser.add_argument("--group-delete", nargs=1, metavar="<group_name>")
-
-        ################# identity providers #################
-
-        parser.add_argument("--idp-get", nargs=1, metavar="<idp_id>")
-        parser.add_argument("--idps-list", action="store_true")
-        parser.add_argument("--idp-create", nargs=1, metavar="<idp_id>")
-        parser.add_argument("--idp-delete", nargs=1, metavar="<idp_id>")
-
-        ################# mappings #################
-
-        parser.add_argument("--mapping-get", nargs=1, metavar="<mapping_id>")
-        parser.add_argument("--mappings-list", action="store_true")
-        parser.add_argument("--mapping-create", nargs=1, metavar="<mapping_id>")
-        parser.add_argument("--mapping-delete", nargs=1, metavar="<mapping_id>")
-        parser.add_argument("--mapping-update", nargs=1, metavar="<mapping_id>")
-
-        ################# protocols #################
-
-        parser.add_argument("--protocol-get", nargs=2, metavar=("<protocol_id>", "<idp_id>"))
-        parser.add_argument("--protocols-list", nargs=1, metavar="<idp_id>")
-        parser.add_argument("--protocol-create", nargs=2, metavar=("<protocol_id>", "<idp_id>"))
-        parser.add_argument("--protocol-delete", nargs=2, metavar=("<protocol_id>", "<idp_id>"))
-
-        ns = parser.parse_args()
-
-        if ns.verbose:
-            utils.verbose = True
-            print("ciao")
-
-        ################# configure all #################
-
-        if ns.configure_all:
-            i.configure_all()
-
-        ################# domains #################
-
-        elif ns.domain_get:
-            domain_identifier = utils.read_domain_id_by_name(i.list_domains().json(), ns.domain_get[0])
-            i.get_domain(domain_identifier)
-        elif ns.domains_list:
-            response = i.list_domains()
-            utils.print_domains(response)
-        elif ns.domain_create:
-            i.create_domain()
-        elif ns.domain_update:
-            domain_identifier = utils.read_domain_id_by_name(i.list_domains().json(), ns.domain_update[0])
-            i.update_domain(domain_identifier)
-        elif ns.domain_delete:
-            domain_identifier = utils.read_domain_id_by_name(i.list_domains().json(), ns.domain_delete[0])
-            i.delete_domain(ns.domain_delete[0], domain_identifier)
-        elif ns.grant_role_group_domain:
-            domain_identifier = utils.read_domain_id_by_name(i.list_domains().json(), ns.grant_role_group_domain[0])
-            group_identifier = utils.read_group_id_by_name(i.list_groups().json(), ns.grant_role_group_domain[1])
-            role_identifier = utils.read_role_id_by_name(i.list_roles().json(), ns.grant_role_group_domain[2])
-            i.grant_role_group_domain(ns.grant_role_group_domain[0], domain_identifier, ns.grant_role_group_domain[1],
-                                      group_identifier, ns.grant_role_group_domain[2], role_identifier)
-        elif ns.revoke_role_group_domain:
-            domain_identifier = utils.read_domain_id_by_name(i.list_domains().json(), ns.revoke_role_group_domain[0])
-            group_identifier = utils.read_group_id_by_name(i.list_groups().json(), ns.revoke_role_group_domain[1])
-            role_identifier = utils.read_role_id_by_name(i.list_roles().json(), ns.revoke_role_group_domain[2])
-            i.revoke_role_group_domain(ns.revoke_role_group_domain[0], domain_identifier,
-                                       ns.revoke_role_group_domain[1], group_identifier, ns.revoke_role_group_domain[2],
-                                       role_identifier)
-
-        ################# projects #################
-
-        elif ns.project_get:
-            project_identifier = utils.read_project_id_by_name(i.list_projects().json(), ns.project_get[0])
-            i.get_project(project_identifier)
-        elif ns.projects_list:
-            response = i.list_projects()
-            utils.print_projects(response)
-        elif ns.project_create:
-            i.create_project()
-        elif ns.project_update:
-            project_identifier = utils.read_project_id_by_name(i.list_projects().json(), ns.project_update[0])
-            i.update_project(project_identifier)
-        elif ns.project_delete:
-            project_identifier = utils.read_project_id_by_name(i.list_projects().json(), ns.project_delete[0])
-            i.delete_project(ns.project_delete[0], project_identifier)
-        elif ns.grant_role_group_project:
-            project_identifier = utils.read_project_id_by_name(i.list_projects().json(), ns.grant_role_group_project[0])
-            group_identifier = utils.read_group_id_by_name(i.list_groups().json(), ns.grant_role_group_project[1])
-            role_identifier = utils.read_role_id_by_name(i.list_roles().json(), ns.grant_role_group_project[2])
-            i.grant_role_group_project(ns.grant_role_group_project[0], project_identifier,
-                                       ns.grant_role_group_project[1], group_identifier, ns.grant_role_group_project[2],
-                                       role_identifier)
-        elif ns.revoke_role_group_project:
-            project_identifier = utils.read_project_id_by_name(i.list_projects().json(), ns.revoke_role_group_project[0])
-            group_identifier = utils.read_group_id_by_name(i.list_groups().json(), ns.revoke_role_group_project[1])
-            role_identifier = utils.read_role_id_by_name(i.list_roles().json(), ns.revoke_role_group_project[2])
-            i.revoke_role_group_project(ns.revoke_role_group_project[0], project_identifier,
-                                        ns.revoke_role_group_project[1], group_identifier,
-                                        ns.revoke_role_group_project[2], role_identifier)
-
-        ################# roles #################
-
-        elif ns.role_get:
-            role_identifier = utils.read_role_id_by_name(i.list_roles().json(), ns.role_get[0])
-            i.get_role(role_identifier)
-        elif ns.roles_list:
-            response = i.list_roles()
-            utils.print_roles(response)
-        elif ns.role_create:
-            i.create_role()
-        elif ns.role_update:
-            role_identifier = utils.read_role_id_by_name(i.list_roles().json(), ns.role_update[0])
-            i.update_role(role_identifier)
-        elif ns.role_delete:
-            role_identifier = utils.read_role_id_by_name(i.list_roles().json(), ns.role_delete[0])
-            i.delete_role(ns.role_delete[0], role_identifier)
-
-        ################# groups #################
-
-        elif ns.group_get:
-            group_identifier = utils.read_group_id_by_name(i.list_groups().json(), ns.group_get[0])
-            i.get_group(group_identifier)
-        elif ns.groups_list:
-            response = i.list_groups()
-            utils.print_roles(response)
-        elif ns.group_create:
-            i.create_group()
-        elif ns.group_update:
-            group_identifier = utils.read_group_id_by_name(i.list_groups().json(), ns.group_update[0])
-            i.update_group(group_identifier)
-        elif ns.group_delete:
-            group_identifier = utils.read_group_id_by_name(i.list_groups().json(), ns.group_delete[0])
-            i.delete_group(ns.group_delete[0], group_identifier)
-
-        ################# identity providers #################
-
-        elif ns.idp_get:
-            i.get_idp(ns.idp_get[0])
-        elif ns.idps_list:
-            i.list_idps()
-        elif ns.idp_create:
-            i.create_idp(ns.idp_create[0])
-        elif ns.idp_delete:
-            i.delete_idp(ns.idp_delete[0])
-
-        ################# mappings #################
-
-        elif ns.mapping_get:
-            i.get_mapping(ns.mapping_get[0])
-        elif ns.mappings_list:
-            i.list_mappings()
-        elif ns.mapping_create:
-            i.create_mapping(ns.mapping_create[0])
-        elif ns.mapping_delete:
-            i.delete_mapping(ns.mapping_delete[0])
-        elif ns.mapping_update:
-            i.update_mapping(ns.mapping_modify[0])
-
-        ################# protocols #################
-
-        elif ns.protocol_get:
-            i.get_protocol(ns.protocol_get[0], ns.protocol_get[1])
-        elif ns.protocols_list:
-            i.list_protocols(ns.protocols_get[0])
-        elif ns.protocol_create:
-            i.create_protocol(ns.protocol_create[0], ns.protocol_create[1])
-        elif ns.protocol_delete:
-            i.delete_protocol(ns.protocol_delete[0], ns.protocol_delete[1])
-
-    else:
-        print("Help: v3_requests.py -h")
+    def get_auth_token(self):
+        token_file = open(self.auth_token_file,"r")
+        self.auth_token = token_file.read()
+        token_file.close()
+        return self.auth_token
