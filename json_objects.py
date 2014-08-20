@@ -8,10 +8,10 @@ DOMAIN = {
 
 PROJECT = {
     "project": {
-        "description": "Project for adfs",
-        "domain_id": "dba28b422e494b97a2fb1ff28aaefb69",
+        "description": "Test",
+        #"domain_id": "default",
         "enabled": True,
-        "name": "adfs-project"
+        "name": "test-project"
     }
 }
 
@@ -23,9 +23,9 @@ ROLE = {
 
 GROUP = {
     "group": {
-        "domain_id": "dba28b422e494b97a2fb1ff28aaefb69",
-        "description": "Group for adfs",
-        "name": "adfs-group"
+        "domain_id": "default",
+        "description": "Test group",
+        "name": "test-group"
     }
 }
 

@@ -25,7 +25,7 @@ class IdentityAPIv3:
         self.idp = json_objects.IDP
         self.mapping = json_objects.MAPPING
         self.protocol = json_objects.PROTOCOL
-        ################# keystone URL #################
+        ################# keystone URL:port #################
         self.host_url = host_url.URL
         ################# headers #################
         self.headers = utils.Headers()
@@ -87,7 +87,7 @@ class IdentityAPIv3:
         header = self.headers.header_post
         header = self._check_header_auth_token(header)
         body = self.domain
-        resp = requests.post(url, data=json.dumps(body), headers=header)
+        resp = requests.post(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 201):
             self.domain = (resp.json().get("domain"))
             print("HTTP Status Code: 201\nDomain created:")
@@ -101,7 +101,7 @@ class IdentityAPIv3:
         header = self.headers.header_patch
         header = self._check_header_auth_token(header)
         body = self.domain
-        resp = requests.patch(url, data=json.dumps(body), headers=header)
+        resp = requests.patch(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 200):
             self.domain = resp.json().get("domain")
             print("HTTP Status Code: 200\nDomain updated:")
@@ -113,7 +113,7 @@ class IdentityAPIv3:
         url = self.host_url + self.api_version + self.domains_string + domain_id
         header = self.headers.header_delete
         header = self._check_header_auth_token(header)
-        resp = requests.delete(url, headers=header)
+        resp = requests.delete(url, headers=header, verify=False)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nDomain deleted:")
             print("\tName: " + domain_name + "\n\tid: " + domain_id)
@@ -124,7 +124,7 @@ class IdentityAPIv3:
         url = self.host_url + self.api_version + self.domains_string + domain_id
         header = self.headers.header_get
         header = self._check_header_auth_token(header)
-        resp = requests.get(url, headers=header)
+        resp = requests.get(url, headers=header, verify=False)
         if utils.check_response(resp, 200):
             self.domain = resp.json().get("domain")
             print("HTTP Status Code: 200\nDomain:")
@@ -136,15 +136,23 @@ class IdentityAPIv3:
         url = self.host_url + self.api_version + self.domains_string
         header = self.headers.header_get
         header = self._check_header_auth_token(header)
-        resp = requests.get(url, headers=header)
+        resp = requests.get(url, headers=header, verify=False)
+        return resp
+
+    def list_domains_federation(self):
+        url = self.host_url + self.api_version + self.federation_string + self.domains_string
+        header = self.headers.header_get
+        if header["X-Auth-Token"] is None:
+            header["X-Auth-Token"] = self.auth_token
+        resp = requests.get(url, headers=header, verify=False)
         return resp
 
     def grant_role_group_domain(self, domain_name, domain_id, group_name, group_id, role_name, role_id):
         url = self.host_url + self.api_version + self.domains_string + domain_id + self.groups_string + group_id + \
-              self.roles_string + role_id
+            self.roles_string + role_id
         header = self.headers.header_put
         header = self._check_header_auth_token(header)
-        resp = requests.put(url, headers=header)
+        resp = requests.put(url, headers=header, verify=False)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nGranted role to group on domain:")
             print("Role:\n\tname: " + role_name + "\n\tid: " + role_id)
@@ -155,10 +163,10 @@ class IdentityAPIv3:
 
     def revoke_role_group_domain(self, domain_name, domain_id, group_name, group_id, role_name, role_id):
         url = self.host_url + self.api_version + self.domains_string + domain_id + self.groups_string + group_id + \
-              self.roles_string + role_id
+            self.roles_string + role_id
         header = self.headers.header_delete
         header = self._check_header_auth_token(header)
-        resp = requests.put(url, headers=header)
+        resp = requests.put(url, headers=header, verify=False)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nRevoked role to group on domain:")
             print("Role:\n\tname: " + role_name + "\n\tid: " + role_id)
@@ -171,7 +179,10 @@ class IdentityAPIv3:
 
     def create_project(self):
         url = self.host_url + self.api_version + self.projects_string
+        header = self.headers.header_put
+        header = self._check_header_auth_token(header)
         body = self.project
+        # domain_id is optional
         if body["project"]["domain_id"] is None:
             if self.ids.domain_id is None:
                 domain_name = raw_input("Insert domain name: ")
@@ -179,7 +190,7 @@ class IdentityAPIv3:
                 body["project"]["domain_id"] = domain_id
             else:
                 body["project"]["domain_id"] = self.ids.domain_id
-        resp = requests.post(url, data=json.dumps(body), headers=headers.HEADER_POST)
+        resp = requests.post(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 201):
             self.project = (resp.json().get("project"))
             print("HTTP Status Code: 201\nProject created:")
@@ -190,8 +201,10 @@ class IdentityAPIv3:
 
     def update_project(self, project_id):
         url = self.host_url + self.api_version + self.projects_string + project_id
+        header = self.headers.header_patch
+        header = self._check_header_auth_token(header)
         body = self.project
-        resp = requests.patch(url, data=json.dumps(body), headers=headers.HEADER_PATCH)
+        resp = requests.patch(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 200):
             self.project = resp.json().get("project")
             print("HTTP Status Code: 200\nProject updated:")
@@ -201,7 +214,9 @@ class IdentityAPIv3:
 
     def delete_project(self, project_name, project_id):
         url = self.host_url + self.api_version + self.projects_string + project_id
-        resp = requests.delete(url, headers=headers.HEADER_DELETE)
+        header = self.headers.header_delete
+        header = self._check_header_auth_token(header)
+        resp = requests.delete(url, headers=header, verify=False)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nProject deleted:")
             print("\tName: " + project_name + "\n\tid: " + project_id)
@@ -210,7 +225,9 @@ class IdentityAPIv3:
 
     def get_project(self, project_id):
         url = self.host_url + self.api_version + self.projects_string + project_id
-        resp = requests.get(url, headers=headers.HEADER_GET)
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         if utils.check_response(resp, 200):
             print("HTTP Status Code: 200\nProject:")
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
@@ -218,23 +235,25 @@ class IdentityAPIv3:
             utils.expose_reason(resp)
 
     def list_projects(self):
-        v3_projects_url = self.host_url + self.api_version + self.projects_string
-        resp = requests.get(v3_projects_url, headers=headers.HEADER_GET)
+        url = self.host_url + self.api_version + self.projects_string
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         return resp
 
     def list_projects_federation(self):
-        v3_projects_url = self.host_url + self.api_version + self.federation_string + self.projects_string
-        header = self.header_get
-        if header["X-Auth-Token"] is None:
-            print("None")
-            header["X-Auth-Token"] = self.auth_token
-        resp = requests.get(v3_projects_url, headers=header)
+        url = self.host_url + self.api_version + self.federation_string + self.projects_string
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         return resp
 
     def grant_role_group_project(self, project_name, project_id, group_name, group_id, role_name, role_id):
         url = self.host_url + self.api_version + self.projects_string + project_id + self.groups_string + group_id + \
-              self.roles_string + role_id
-        resp = requests.put(url, headers=headers.HEADER_PUT)
+            self.roles_string + role_id
+        header = self.headers.header_put
+        header = self._check_header_auth_token(header)
+        resp = requests.put(url, headers=header, verify=False)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nGranted role to group on project:")
             print("Role:\n\tname: " + role_name + "\n\tid: " + role_id)
@@ -245,8 +264,10 @@ class IdentityAPIv3:
 
     def revoke_role_group_project(self, project_name, project_id, group_name, group_id, role_name, role_id):
         url = self.host_url + self.api_version + self.projects_string + project_id + self.groups_string + group_id + \
-              self.roles_string + role_id
-        resp = requests.put(url, headers=headers.HEADER_DELETE)
+            self.roles_string + role_id
+        header = self.headers.header_delete
+        header = self._check_header_auth_token(header)
+        resp = requests.put(url, headers=header, verify=False)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nRevoked role to group on project:")
             print("Role:\n\tname: " + role_name + "\n\tid: " + role_id)
@@ -259,8 +280,10 @@ class IdentityAPIv3:
 
     def create_role(self):
         url = self.host_url + self.api_version + self.roles_string
+        header = self.headers.header_post
+        header = self._check_header_auth_token(header)
         body = self.role
-        resp = requests.post(url, data=json.dumps(body), headers=headers.HEADER_POST)
+        resp = requests.post(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 201):
             self.role = resp.json().get("role")
             print("HTTP Status Code: 201\nRole created:")
@@ -271,8 +294,10 @@ class IdentityAPIv3:
 
     def update_role(self, role_id):
         url = self.host_url + self.api_version + self.roles_string + role_id
+        header = self.headers.header_patch
+        header = self._check_header_auth_token(header)
         body = self.role
-        resp = requests.patch(url, data=json.dumps(body), headers=headers.HEADER_PATCH)
+        resp = requests.patch(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 200):
             self.role == resp.json().get("role")
             print("HTTP Status Code: 200\nRole updated:")
@@ -282,7 +307,9 @@ class IdentityAPIv3:
 
     def delete_role(self, role_name, role_id):
         url = self.host_url + self.api_version + self.roles_string + role_id
-        resp = requests.delete(url, headers=headers.HEADER_DELETE)
+        header = self.headers.header_delete
+        header = self._check_header_auth_token(header)
+        resp = requests.delete(url, headers=header, verify=False)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nRole deleted:")
             print("\tName: " + role_name + "\n\tid: " + role_id)
@@ -291,7 +318,9 @@ class IdentityAPIv3:
 
     def get_role(self, role_id):
         url = self.host_url + self.api_version + self.roles_string + role_id
-        resp = requests.get(url, headers=headers.HEADER_GET)
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         if utils.check_response(resp, 200):
             self.role = resp.json().get("role")
             print("HTTP Status Code: 200\nRole:")
@@ -301,14 +330,19 @@ class IdentityAPIv3:
 
     def list_roles(self):
         url = self.host_url + self.api_version + self.roles_string
-        resp = requests.get(url, headers=headers.HEADER_GET)
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         return resp
 
     ################# groups #################
 
     def create_group(self):
         url = self.host_url + self.api_version + self.groups_string
+        header = self.headers.header_post
+        header = self._check_header_auth_token(header)
         body = self.group
+        # domain_id is optional
         if body["group"]["domain_id"] is None:
             if self.ids.domain_id is None:
                 domain_name = raw_input("Insert domain name: ")
@@ -316,7 +350,7 @@ class IdentityAPIv3:
                 body["group"]["domain_id"] = domain_id
             else:
                 body["group"]["domain_id"] = self.ids.domain_id
-        resp = requests.post(url, data=json.dumps(body), headers=headers.HEADER_POST)
+        resp = requests.post(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 201):
             self.group = resp.json().get("group")
             print("HTTP Status Code: 201\nGroup created:")
@@ -327,8 +361,10 @@ class IdentityAPIv3:
 
     def update_group(self, group_id):
         url = self.host_url + self.api_version + self.groups_string + group_id
+        header = self.headers.header_patch
+        header = self._check_header_auth_token(header)
         body = self.group
-        resp = requests.patch(url, data=json.dumps(body), headers=headers.HEADER_PATCH)
+        resp = requests.patch(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 200):
             self.group = (resp.json().get("group"))
             print("HTTP Status Code: 200\nGroup updated:")
@@ -338,7 +374,9 @@ class IdentityAPIv3:
 
     def delete_group(self, group_name, group_id):
         url = self.host_url + self.api_version + self.groups_string + group_id
-        resp = requests.delete(url, headers=headers.HEADER_DELETE)
+        header = self.headers.header_delete
+        header = self._check_header_auth_token(header)
+        resp = requests.delete(url, headers=header, verify=False)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nGroup deleted:")
             print("\tName: " + group_name + "\n\tid: " + group_id)
@@ -347,7 +385,9 @@ class IdentityAPIv3:
 
     def get_group(self, group_id):
         url = self.host_url + self.api_version + self.groups_string + group_id
-        resp = requests.get(url, headers=headers.HEADER_GET)
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         if utils.check_response(resp, 200):
             self.group = resp.json().get("group")
             print("HTTP Status Code: 200\nGroup:")
@@ -357,15 +397,19 @@ class IdentityAPIv3:
 
     def list_groups(self):
         url = self.host_url + self.api_version + self.groups_string
-        resp = requests.get(url, headers=headers.HEADER_GET)
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         return resp
 
     ################# identity providers #################
 
     def create_idp(self, idp_id):
         url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id
+        header = self.headers.header_post
+        header = self._check_header_auth_token(header)
         body = self.idp
-        resp = requests.put(url, data=json.dumps(body), headers=headers.HEADER_POST)
+        resp = requests.put(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 201):
             self.idp = resp.json().get("identity_provider")
             print("HTTP Status Code: 201\nIdP created:")
@@ -376,7 +420,9 @@ class IdentityAPIv3:
 
     def delete_idp(self, idp_id):
         url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id
-        resp = requests.delete(url, headers=headers.HEADER_DELETE)
+        header = self.headers.header_delete
+        header = self._check_header_auth_token(header)
+        resp = requests.delete(url, headers=header, verify=False)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nIdentity provider deleted:")
             print("\tId: " + idp_id)
@@ -385,7 +431,9 @@ class IdentityAPIv3:
 
     def get_idp(self, idp_id):
         url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id
-        resp = requests.get(url, headers=headers.HEADER_GET)
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         if utils.check_response(resp, 200):
             self.idp = resp.json().get("identity_provider")
             print("HTTP Status Code: 200\nIdentity provider:")
@@ -395,7 +443,9 @@ class IdentityAPIv3:
 
     def list_idps(self):
         url = self.host_url + self.api_version + self.federation_string + self.idps_string
-        resp = requests.get(url, headers=headers.HEADER_GET)
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         if utils.check_response(resp, 200):
             print("HTTP Status Code: 200\nIdentity providers:")
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
@@ -406,6 +456,8 @@ class IdentityAPIv3:
 
     def create_mapping(self, mapping_id):
         url = self.host_url + self.api_version + self.federation_string + self.mappings_string + mapping_id
+        header = self.headers.header_post
+        header = self._check_header_auth_token(header)
         body = self.mapping
         if body["mapping"]["rules"][0]["local"][1]["group"]["id"] is None:
             if self.ids.group_id is None:
@@ -414,7 +466,7 @@ class IdentityAPIv3:
                 body["mapping"]["rules"][0]["local"][1]["group"]["id"] = group_id
             else:
                 body["mapping"]["rules"][0]["local"][1]["group"]["id"] = self.ids.group_id
-        resp = requests.put(url, data=json.dumps(body), headers=headers.HEADER_POST)
+        resp = requests.put(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 201):
             self.mapping = resp.json().get("mapping")
             print("HTTP Status Code: 201\nMapping created:")
@@ -424,8 +476,10 @@ class IdentityAPIv3:
         self.ids.mapping_id = mapping_id
 
     def delete_mapping(self, mapping_id):
-        v3_mappings_url = self.host_url + self.api_version + self.federation_string + self.mappings_string + mapping_id
-        resp = requests.delete(v3_mappings_url, headers=headers.HEADER_DELETE)
+        url = self.host_url + self.api_version + self.federation_string + self.mappings_string + mapping_id
+        header = self.headers.header_delete
+        header = self._check_header_auth_token(header)
+        resp = requests.delete(url, headers=header, verify=False)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nMapping deleted:")
             print("\tId: " + mapping_id)
@@ -433,8 +487,9 @@ class IdentityAPIv3:
             utils.expose_reason(resp)
 
     def get_mapping(self, mapping_id):
-        v3_mappings_url = self.host_url + self.api_version + self.federation_string + self.mappings_string + mapping_id
-        resp = requests.get(v3_mappings_url, headers=headers.HEADER_GET)
+        url = self.host_url + self.api_version + self.federation_string + self.mappings_string + mapping_id
+        header = self.headers.header_get
+        resp = requests.get(url, headers=header, verify=False)
         if utils.check_response(resp, 200):
             self.mapping = resp.json().get("mapping")
             print("HTTP Status Code: 200\nMapping:")
@@ -444,7 +499,9 @@ class IdentityAPIv3:
 
     def list_mappings(self):
         url = self.host_url + self.api_version + self.federation_string + self.mappings_string
-        resp = requests.get(url, headers=headers.HEADER_GET)
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         if utils.check_response(resp, 200):
             print("HTTP Status Code: 200\nMappings:")
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
@@ -452,9 +509,11 @@ class IdentityAPIv3:
             utils.expose_reason(resp)
 
     def update_mapping(self, mapping_id):
-        v3_mappings_url = self.host_url + self.api_version + self.federation_string + self.mappings_string + mapping_id
+        url = self.host_url + self.api_version + self.federation_string + self.mappings_string + mapping_id
+        header = self.headers.header_patch
+        header = self._check_header_auth_token(header)
         body = self.mapping
-        resp = requests.patch(v3_mappings_url, data=json.dumps(body), headers=headers.HEADER_PATCH)
+        resp = requests.patch(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 200):
             self.mapping = resp.json().get("mapping")
             print("HTTP Status Code: 200\nMapping updated:")
@@ -466,7 +525,9 @@ class IdentityAPIv3:
 
     def create_protocol(self, protocol_id, idp_id):
         url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
-              self.protocols_string + protocol_id
+            self.protocols_string + protocol_id
+        header = self.headers.header_post
+        header = self._check_header_auth_token(header)
         body = self.protocol
         if body["protocol"]["mapping_id"] is None:
             if self.ids.mapping_id is None:
@@ -475,7 +536,7 @@ class IdentityAPIv3:
             else:
                 body["protocol"]["mapping_id"] = self.ids.mapping_id
         print(body)
-        resp = requests.put(url, data=json.dumps(body), headers=headers.HEADER_POST)
+        resp = requests.put(url, data=json.dumps(body), headers=header, verify=False)
         if utils.check_response(resp, 201):
             self.protocol = resp.json().get("protocol")
             print("HTTP Status Code: 201\nProtocol created:")
@@ -485,9 +546,11 @@ class IdentityAPIv3:
         self.ids.protocol_id = protocol_id
 
     def delete_protocol(self, protocol_id, idp_id):
-        v3_protocols_url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
-                           self.protocols_string + protocol_id
-        resp = requests.delete(v3_protocols_url, headers=headers.HEADER_DELETE)
+        url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
+            self.protocols_string + protocol_id
+        header = self.headers.header_delete
+        header = self._check_header_auth_token(header)
+        resp = requests.delete(url, headers=header, verify=False)
         if utils.check_response(resp, 204):
             print("HTTP Status Code: 204\nProtocol deleted:")
             print("\tId: " + protocol_id)
@@ -496,8 +559,10 @@ class IdentityAPIv3:
 
     def get_protocol(self, protocol_id, idp_id):
         url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
-              self.protocols_string + protocol_id
-        resp = requests.get(url, headers=headers.HEADER_GET)
+            self.protocols_string + protocol_id
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         if utils.check_response(resp, 200):
             self.protocol = resp.json().get("protocol")
             print("HTTP Status Code: 200\nProtocol:")
@@ -507,8 +572,10 @@ class IdentityAPIv3:
 
     def list_protocols(self, idp_id):
         url = self.host_url + self.api_version + self.federation_string + self.idps_string + idp_id + \
-              self.protocols_string
-        resp = requests.get(url, headers=headers.HEADER_GET)
+            self.protocols_string
+        header = self.headers.header_get
+        header = self._check_header_auth_token(header)
+        resp = requests.get(url, headers=header, verify=False)
         if utils.check_response(resp, 200):
             print("HTTP Status Code: 200\nProtocols:")
             print(json.dumps(resp.json(), sort_keys=True, indent=4, separators=(',', ': ')))
@@ -518,12 +585,12 @@ class IdentityAPIv3:
     ################# tokens #################
 
     def set_auth_token(self, token):
-        token_file = open(self.auth_token_file,"w")
+        token_file = open(self.auth_token_file, "w")
         token_file.write(token)
         token_file.close()
 
     def get_auth_token(self):
-        token_file = open(self.auth_token_file,"r")
+        token_file = open(self.auth_token_file, "r")
         self.auth_token = token_file.read()
         token_file.close()
         return self.auth_token

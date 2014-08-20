@@ -24,6 +24,7 @@ def build_parser():
 
     parser.add_argument("--domain-get", nargs=1, metavar="<domain_name>")
     parser.add_argument("--domains-list", action="store_true")
+    parser.add_argument("--domains-list-fed", action="store_true")
     parser.add_argument("--domain-create", action="store_true")
     parser.add_argument("--domain-update", nargs=1, metavar="<domain_name>")
     parser.add_argument("--domain-delete", nargs=1, metavar="<domain_name>")
@@ -110,7 +111,7 @@ def main():
         ################# token check #################
 
         # load the auth_token - the token configured in x_auth_token has more priority than the token/s configured in
-        # headers,py
+        # headers.py
         if i.get_auth_token():
             i.auth_token = i.get_auth_token()
             i.headers.header_post["X-Auth-Token"] = i.auth_token
@@ -144,6 +145,9 @@ def main():
             i.get_domain(domain_identifier)
         elif args.domains_list:
             response = i.list_domains()
+            utils.print_domains(response)
+        elif args.domains_list_fed:
+            response = i.list_domains_federation()
             utils.print_domains(response)
         elif args.domain_create:
             i.create_domain()
